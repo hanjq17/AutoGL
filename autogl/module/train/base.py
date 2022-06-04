@@ -147,7 +147,8 @@ class BaseTrainer(AutoModule):
         return _DummyModel(self.encoder, self.decoder).to(self.device)
 
     def _initialize(self):
-        self.encoder.initialize()
+        if not isinstance(self.encoder, _typing.Callable):
+            self.encoder.initialize()
         if self.decoder is not None:
             self.decoder.initialize(self.encoder)
 
@@ -315,7 +316,7 @@ class BaseTrainer(AutoModule):
     def combined_hyper_parameter_space(self):
         return {
             "trainer": self.hyper_parameter_space,
-            "encoder": self.encoder.hyper_parameter_space,
+            "encoder": self.encoder.hyper_parameter_space if not isinstance(self.encoder, _typing.Callable) else [],
             "decoder": [] if self.decoder is None else self.decoder.hyper_parameter_space
         }
 
@@ -370,6 +371,8 @@ class _BaseClassificationTrainer(BaseTrainer):
                 self.decoder = None
         elif enc is None:
             self._encoder = None
+        elif isinstance(enc, _typing.Callable):
+            self._encoder = enc
         else:
             raise ValueError("Enc {} is not supported!".format(enc))
         self.num_features = self.num_features

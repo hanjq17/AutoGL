@@ -150,18 +150,30 @@ class SANENodeClassificationSpace(BaseSpace):
 
     def parse_model(self, selection, device) -> BaseAutoModel:
         # sel_list = ['const', 'sum', 'relu6', 2, 128, 'gat', 'sum', 'linear', 2, 7]
-        model = NetworkGNN(
+        temp = lambda dropout, hidden_dim: NetworkGNN(
             selection,
             self.input_dim,
             self.output_dim,
-            self.hidden_dim,
+            hidden_dim,
             self.layer_number,
-            self.dropout,
+            dropout,
             'relu',
             fix_last=self.fix_last,
             with_linear=self.with_linear
         ).wrap()
-        return model
+        return temp
+        # model = NetworkGNN(
+        #     selection,
+        #     self.input_dim,
+        #     self.output_dim,
+        #     self.hidden_dim,
+        #     self.layer_number,
+        #     self.dropout,
+        #     'relu',
+        #     fix_last=self.fix_last,
+        #     with_linear=self.with_linear
+        # ).wrap()
+        # return model
 
 
 class NetworkGNN(BaseSpace):

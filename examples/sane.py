@@ -11,12 +11,13 @@ from autogl.datasets.utils import random_splits_mask
 
 
 if __name__ == '__main__':
-    set_seed(202106)
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='configs/nodeclf_sane_benchmark.yml')
     parser.add_argument('--dataset', default='cora', type=str)
+    parser.add_argument('--seed', default=0, type=int)
 
     args = parser.parse_args()
+    set_seed(args.seed)
 
     dataset = build_dataset_from_name(args.dataset, path='/data/AutoGL')
     random_splits_mask(dataset, 0.6, 0.2)

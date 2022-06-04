@@ -3,7 +3,7 @@ ensemble:
 feature:
 - name: NormalizeFeatures
 hpo:
-  max_evals: 100
+  max_evals: 50
   name: random
 nas:
   space:
@@ -12,7 +12,7 @@ nas:
     layer_number: 3
   algorithm:
     name: sane
-    num_epochs: 500
+    num_epochs: 50
   estimator:
     name: oneshot
 models: []

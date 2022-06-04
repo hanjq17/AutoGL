@@ -391,7 +391,7 @@ class AutoGCN(BaseAutoModel):
         self.hyper_parameters = {
             "num_layers": 3,
             "hidden": [128, 64],
-            "dropout": 0,
+            "dropout": 0.0,
             "act": "relu",
         }
 

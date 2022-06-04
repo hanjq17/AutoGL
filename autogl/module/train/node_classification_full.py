@@ -90,6 +90,9 @@ class NodeClassificationFullTrainer(BaseNodeClassificationTrainer):
         max_epoch: int = 100,
         early_stopping_round: int = 100,
         weight_decay: float = 1e-4,
+        # here
+        hidden_dim: int = 32,
+        dropout: float = 0.5,
         device: Union[torch.device, str] = "auto",
         init: bool = False,
         feval: Iterable[Type[Evaluation]] =[Logloss],
@@ -132,6 +135,10 @@ class NodeClassificationFullTrainer(BaseNodeClassificationTrainer):
 
         self.weight_decay = weight_decay
 
+        # here
+        self.dropout = dropout
+        self.hidden_dim = hidden_dim
+
         self.early_stopping = EarlyStopping(
             patience=early_stopping_round, verbose=False
         )
@@ -142,35 +149,78 @@ class NodeClassificationFullTrainer(BaseNodeClassificationTrainer):
 
         self.pyg_dgl = DependentBackend.get_backend_name()
 
+        # self.hyper_parameter_space = [
+        #     {
+        #         "parameterName": "max_epoch",
+        #         "type": "INTEGER",
+        #         "maxValue": 500,
+        #         "minValue": 10,
+        #         "scalingType": "LINEAR",
+        #     },
+        #     {
+        #         "parameterName": "early_stopping_round",
+        #         "type": "INTEGER",
+        #         "maxValue": 30,
+        #         "minValue": 10,
+        #         "scalingType": "LINEAR",
+        #     },
+        #     {
+        #         "parameterName": "lr",
+        #         "type": "DOUBLE",
+        #         "maxValue": 1e-1,
+        #         "minValue": 1e-4,
+        #         "scalingType": "LOG",
+        #     },
+        #     {
+        #         "parameterName": "weight_decay",
+        #         "type": "DOUBLE",
+        #         "maxValue": 1e-2,
+        #         "minValue": 1e-4,
+        #         "scalingType": "LOG",
+        #     },
+        # ]
+
         self.hyper_parameter_space = [
             {
                 "parameterName": "max_epoch",
                 "type": "INTEGER",
-                "maxValue": 500,
-                "minValue": 10,
+                "maxValue": 600,
+                "minValue": 400,
                 "scalingType": "LINEAR",
             },
             {
                 "parameterName": "early_stopping_round",
                 "type": "INTEGER",
-                "maxValue": 30,
-                "minValue": 10,
+                "maxValue": 1000,
+                "minValue": 1000,
                 "scalingType": "LINEAR",
             },
             {
                 "parameterName": "lr",
                 "type": "DOUBLE",
-                "maxValue": 1e-1,
+                "maxValue": 1e-2,
                 "minValue": 1e-4,
                 "scalingType": "LOG",
             },
             {
                 "parameterName": "weight_decay",
                 "type": "DOUBLE",
-                "maxValue": 1e-2,
-                "minValue": 1e-4,
+                "maxValue": 1e-3,
+                "minValue": 1e-7,
                 "scalingType": "LOG",
             },
+            {
+                "parameterName": "dropout",
+                "type": "DOUBLE",
+                "maxValue": 0.8,
+                "minValue": 0.1,
+                "scalingType": "LINEAR",
+            },
+            {
+                "parameterName": "hidden_dim",
+                "type": "CATEGORICAL",
+                "feasiblePoints": [32, 64, 128, 256]
+            }
         ]
 
         self.hyper_parameters = {
@@ -178,6 +228,9 @@ class NodeClassificationFullTrainer(BaseNodeClassificationTrainer):
             "early_stopping_round": self.early_stopping_round,
             "lr": self.lr,
             "weight_decay": self.weight_decay,
+            # here
+            "dropout": self.dropout,
+            "hidden_dim": self.hidden_dim,
         }
 
         if init is True:
@@ -192,6 +245,10 @@ class NodeClassificationFullTrainer(BaseNodeClassificationTrainer):
 
     def __train_only(self, data, train_mask=None):
         data = data.to(self.device)
+
+        # here
+        self.encoder = self.encoder(self.dropout, self.hidden_dim)
+
         model = self._compose_model()
         if train_mask is None:
             if self.pyg_dgl == 'pyg':
@@ -273,7 +330,7 @@ class NodeClassificationFullTrainer(BaseNodeClassificationTrainer):
                 mask = getattr(data, f'{mask}_mask')
             elif self.pyg_dgl == 'dgl':
                 mask = data.ndata[f'{mask}_mask']
-        
+
         model = self._compose_model()
         model.to(self.device)
 
@@ -403,6 +460,9 @@ class NodeClassificationFullTrainer(BaseNodeClassificationTrainer):
                 "learning_rate": self.lr,
                 "max_epoch": self.max_epoch,
                 "early_stopping_round": self.early_stopping_round,
+                # here
+                "hidden_dim": self.hidden_dim,
+                "dropout": self.dropout,
                 "encoder": repr(self.encoder),
                 "decoder": repr(self.decoder)
             }
@@ -510,7 +570,8 @@ class NodeClassificationFullTrainer(BaseNodeClassificationTrainer):
             hp = origin_hp
         else:
             hp = hp_trainer
-        encoder = encoder.from_hyper_parameter(hp_encoder)
+        if not isinstance(encoder, Callable):
+            encoder = encoder.from_hyper_parameter(hp_encoder)
         if isinstance(encoder, BaseEncoderMaintainer) and isinstance(decoder, BaseDecoderMaintainer):
             decoder = decoder.from_hyper_parameter_and_encoder(hp_decoder, encoder)
 
@@ -524,6 +585,9 @@ class NodeClassificationFullTrainer(BaseNodeClassificationTrainer):
             early_stopping_round=hp["early_stopping_round"],
             device=self.device,
             weight_decay=hp["weight_decay"],
+            # here
+            hidden_dim=hp["hidden_dim"],
+            dropout=hp["dropout"],
             feval=self.feval,
             loss=self.loss,
             lr_scheduler_type=self.lr_scheduler_type,

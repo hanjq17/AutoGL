@@ -119,29 +119,12 @@ class SANE(BaseNAS):
         model_optim = self.model_optimizer(
             space.model_parameters, self.model_lr, weight_decay=self.model_wd
         )
-        optimizer = torch.optim.SGD(
-            space.model_parameters,
-            0.025,
-            momentum=0.9,
-            weight_decay=5e-4)
 
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, float(self.num_epochs),
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(model_optim, float(self.num_epochs),
                                                                eta_min=0.001)
 
-        # nas_modules = []
-        # replace_layer_choice(space, DartsLayerChoice, nas_modules)
-        # replace_input_choice(space, DartsInputChoice, nas_modules)
         space = space.to(self.device)
 
-        # ctrl_params = {}
-        # for _, m in nas_modules:
-        #     if m.name in ctrl_params:
-        #         assert (
-        #             m.alpha.size() == ctrl_params[m.name].size()
-        #         ), "Size of parameters with the same label should be same."
-        #         m.alpha = ctrl_params[m.name]
-        #     else:
-        #         ctrl_params[m.name] = m.alpha
         arch_optim = self.arch_optimizer(
             space.arch_parameters(), self.arch_lr, weight_decay=self.arch_wd
         )
@@ -154,9 +137,6 @@ class SANE(BaseNAS):
 
         selection = space.genotype()  # TODO: should be dict, but now is str
         print(selection)
-        # exit(0)
-
-        # selection = self.export(nas_modules)
         return space.parse_model(selection, self.device)
 
     def _train_one_epoch(
@@ -196,10 +176,3 @@ class SANE(BaseNAS):
         metric, loss = estimator.infer(model, dataset, mask=mask)
         return metric, loss
 
-    # @torch.no_grad()
-    # def export(self, nas_modules) -> dict:
-    #     result = dict()
-    #     for name, module in nas_modules:
-    #         if name not in result:
-    #             result[name] = module.export()
-    #     return result
